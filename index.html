@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>FactCues Post Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@500;700;800;900&family=Poppins:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link href="fonts.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #121212;
+    font-family: -apple-system, Roboto, 'Segoe UI', sans-serif;
+    color: #fff;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    height: 100dvh;
+    margin: 0 auto;
+    padding: 8px 10px 0;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 13px;
+    text-align: center;
+    margin: 0 0 6px;
+    font-weight: 600;
+    color: #eee;
+    letter-spacing: 0.4px;
+    flex: 0 0 auto;
+  }
+  .canvas-container {
+    position: relative;
+    flex: 0 0 auto;
+    width: min(100%, calc(56vh * 0.8));
+    aspect-ratio: 4 / 5;
+    margin: 0 auto;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    touch-action: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  }
+  canvas#card { width: 100%; height: 100%; display: block; }
+  .placeholder-btn {
+    position: absolute;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 13px;
+    pointer-events: none;
+    text-align: center;
+    padding: 0 20px;
+  }
+  .divider {
+    position: absolute;
+    left: 0; right: 0;
+    height: 28px;
+    margin-top: -14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ns-resize;
+    z-index: 5;
+  }
+  .divider .bar {
+    width: 44px;
+    height: 5px;
+    background: #4CAF50;
+    border-radius: 3px;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.35);
+  }
+  .hint {
+    font-size: 11px;
+    color: #777;
+    text-align: center;
+    margin-top: 4px;
+    flex: 0 0 auto;
+    line-height: 1.3;
+  }
+  .controls {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 16px;
+  }
+  .row { display: flex; gap: 8px; }
+  button {
+    flex: 1;
+    background: #2b2b2b;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 9px 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  button:active { background: #3a3a3a; }
+  button.primary { background: #4CAF50; border-color: #4CAF50; }
+  button.primary:active { background: #43a047; }
+  textarea, input[type=text] {
+    width: 100%;
+    background: #1c1c1c;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  textarea { resize: none; min-height: 52px; }
+  label.small {
+    font-size: 11px;
+    color: #aaa;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  label.small span.t { display: flex; justify-content: space-between; }
+  input[type=range] { width: 100%; margin: 0; height: 18px; }
+  #fileInput { display: none; }
+  .wm-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    background: #181818;
+    border: 1px solid #2f2f2f;
+    border-radius: 10px;
+  }
+  .wm-title { font-size: 12px; font-weight: 700; color: #ccc; letter-spacing: 0.3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FactCues Post Maker</h1>
+
+  <div class="canvas-container" id="canvasContainer">
+    <canvas id="card" width="1080" height="1350"></canvas>
+    <div class="placeholder-btn" id="placeholderHint">Neeche button se image select karein</div>
+    <div class="divider" id="divider"><div class="bar"></div></div>
+  </div>
+  <div class="hint">📌 Image drag karein • text ke word par tap karke color badlein (aakhri tap par auto)</div>
+
+  <div class="controls">
+    <div class="row">
+      <button id="pickImageBtn">📷 Image</button>
+      <button id="saveBtn" class="primary">💾 Save Post</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" />
+
+    <textarea id="factText" placeholder="Yahan apna psychology fact likhein..."></textarea>
+
+    <div class="row">
+      <label class="small"><span class="t"><span>Font</span><span><span id="fontSizeVal">52</span>px</span></span>
+        <input type="range" id="fontSize" min="20" max="100" value="52" />
+      </label>
+      <label class="small"><span class="t"><span>Zoom</span><span><span id="zoomVal">100</span>%</span></span>
+        <input type="range" id="zoom" min="100" max="300" value="100" />
+      </label>
+    </div>
+
+    <div class="wm-box">
+      <div class="wm-title">🏷️ Watermark</div>
+      <input type="text" id="watermarkInput" value="FactCues" placeholder="Watermark text" />
+      <div class="row">
+        <label class="small"><span class="t"><span>Size</span><span><span id="wmSizeVal">26</span>px</span></span>
+          <input type="range" id="wmSize" min="16" max="56" value="26" />
+        </label>
+        <label class="small"><span class="t"><span>Opacity</span><span><span id="wmOpacityVal">92</span>%</span></span>
+          <input type="range" id="wmOpacity" min="30" max="100" value="92" />
+        </label>
+      </div>
+      <div class="row">
+        <button id="wmPosBtn">📍 Position: Top Right</button>
+        <button id="wmToggleBtn">👁️ Show: ON</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('card');
+  const ctx = canvas.getContext('2d');
+  const container = document.getElementById('canvasContainer');
+  const divider = document.getElementById('divider');
+  const placeholderHint = document.getElementById('placeholderHint');
+  const factText = document.getElementById('factText');
+  const fontSizeInput = document.getElementById('fontSize');
+  const fontSizeVal = document.getElementById('fontSizeVal');
+  const zoomInput = document.getElementById('zoom');
+  const zoomVal = document.getElementById('zoomVal');
+  const fileInput = document.getElementById('fileInput');
+  const watermarkInput = document.getElementById('watermarkInput');
+
+  // 4:5 portrait canvas. Image on TOP, black text area on BOTTOM.
+  const W = 1080;
+  const H = 1350;
+  const FONT_STACK = '"Noto Sans Devanagari", "Poppins", Arial, sans-serif';
+
+  // Colors available when manually tapping a word
+  const WORD_COLORS = ['#ffffff', '#ffeb3b', '#00e5ff', '#69f0ae', '#ff5252', '#ff9800', '#ea80fc'];
+
+  // Pronouns are never colored and never counted in the white/color alternation
+  const PRONOUNS = new Set([
+    'i','you','he','she','it','we','they','me','him','her','us','them',
+    'my','your','his','its','our','their','mine','yours','hers','ours','theirs',
+    'myself','yourself','himself','herself','itself','ourselves','yourselves','themselves',
+    'who','whom','whose','which','what','whoever','whomever','whichever','whatever',
+    'anyone','anybody','anything','someone','somebody','something','nobody','nothing',
+    'each','either','neither','one','another','other','others','few','many','several',
+    'all','both','some','any','none',
+    'मैं','मै','मुझे','मुझ','मेरा','मेरी','मेरे','हम','हमें','हमारा','हमारी','हमारे',
+    'तू','तुम','तुझे','तुम्हें','तुम्हारा','तुम्हारी','तुम्हारे','तेरा','तेरी','तेरे',
+    'आप','आपको','आपका','आपकी','आपके',
+    'वह','वो','वे','उसे','उन्हें','उसका','उसकी','उसके','उनका','उनकी','उनके','उन',
+    'यह','ये','इसे','इन्हें','इसका','इसकी','इसके','इनका','इनकी','इनके','इन','इस','उस',
+    'कौन','क्या','किसे','किसका','किसकी','किसके','कोई','कुछ','सब','सभी','खुद','अपना','अपनी','अपने'
+  ]);
+
+  const state = {
+    image: null,
+    splitRatio: 0.6,
+    splitY: 0,
+    fontSize: 52,
+    text: factText.value,
+    zoom: 1,
+    centerX: null,
+    centerY: null,
+    cropW: null,
+    cropH: null,
+    watermarkText: watermarkInput.value,
+    wmSize: 26,
+    wmOpacity: 0.92,
+    wmPos: 0,
+    wmVisible: true,
+    colorPalette: ['#FFD54F', '#FF5252', '#4FC3F7', '#66BB6A', '#FF6EC7', '#BA68C8'],
+    wordColorIdx: [],      // -1 = auto, >= 0 = manual color from WORD_COLORS
+    wordBoxes: []
+  };
+
+  // ---- Title Case (display only) ----
+  const SMALL_WORDS = new Set([
+    'a','an','the','and','but','or','nor','for','so','yet','as','at','by','in',
+    'of','off','on','per','to','up','via','vs','with','from','into','than'
+  ]);
+
+  function titleCaseWord(word, index, total) {
+    const m = word.match(/^([^\p{L}\p{N}]*)([\p{L}\p{N}][\s\S]*)$/u);
+    if (!m) return word;
+    const lead = m[1];
+    const rest = m[2];
+    const core = rest.replace(/[^\p{L}\p{N}]+$/u, '').toLowerCase();
+    const isEdge = index === 0 || index === total - 1;
+    if (!isEdge && SMALL_WORDS.has(core)) {
+      return lead + rest.charAt(0).toLowerCase() + rest.slice(1);
+    }
+    return lead + rest.charAt(0).toUpperCase() + rest.slice(1);
+  }
+
+  function getWordList(text) {
+    return (text.match(/\S+/g) || []);
+  }
+
+  function syncWordColors() {
+    const count = getWordList(state.text).length;
+    while (state.wordColorIdx.length < count) state.wordColorIdx.push(-1);
+    state.wordColorIdx.length = count;
+  }
+  syncWordColors();
+
+  function normWord(w) {
+    return w.toLowerCase().replace(/[^\p{L}\p{N}\p{M}]/gu, '');
+  }
+
+  function isPronoun(word) {
+    return PRONOUNS.has(normWord(word));
+  }
+
+  function buildTokens(text) {
+    const words = getWordList(text);
+    const palette = state.colorPalette;
+    let colorCounter = 0;
+    let paletteIndex = 0;
+
+    return words.map((w, i) => {
+      // Auto color always computed so manual overrides don't shift the rhythm
+      let autoColor = '#ffffff';
+      if (!isPronoun(w)) {
+        if (colorCounter % 2 === 1) {
+          autoColor = palette[paletteIndex % palette.length];
+          paletteIndex++;
+        }
+        colorCounter++;
+      }
+      const manual = state.wordColorIdx[i];
+      const color = manual >= 0 ? WORD_COLORS[manual % WORD_COLORS.length] : autoColor;
+      return { text: titleCaseWord(w, i, words.length), color };
+    });
+  }
+
+  function wrapTokens(context, tokens, maxWidth) {
+    const spaceWidth = context.measureText(' ').width;
+    const lines = [];
+    let currentLine = [];
+    let currentWidth = 0;
+    tokens.forEach((tok, idx) => {
+      const w = context.measureText(tok.text).width;
+      const addWidth = currentLine.length ? spaceWidth + w : w;
+      if (currentWidth + addWidth > maxWidth && currentLine.length) {
+        lines.push(currentLine);
+        currentLine = [{ ...tok, width: w, wordIndex: idx }];
+        currentWidth = w;
+      } else {
+        currentLine.push({ ...tok, width: w, wordIndex: idx });
+        currentWidth += addWidth;
+      }
+    });
+    if (currentLine.length) lines.push(currentLine);
+    return lines;
+  }
+
+  // ---- Watermark (pill badge) ----
+  const WM_POSITIONS = [
+    { key: 'top-right',    label: 'Top Right' },
+    { key: 'top-left',     label: 'Top Left' },
+    { key: 'img-right',    label: 'Image Bottom Right' },
+    { key: 'img-left',     label: 'Image Bottom Left' },
+    { key: 'card-bottom',  label: 'Card Bottom Center' }
+  ];
+  const WM_ACCENT = '#2196F3';
+  const WM_MARGIN = 28;
+
+  function measureWatermark(text) {
+    if (!text) return { w: 0, h: 0, textW: 0, size: 0 };
+    const size = state.wmSize;
+    ctx.save();
+    ctx.font = `700 ${size}px ${FONT_STACK}`;
+    const textW = ctx.measureText(text).width;
+    ctx.restore();
+    const padX = size * 0.5;
+    const dotR = size * 0.14;
+    const gap = size * 0.32;
+    const h = size * 1.35;
+    const w = padX + dotR * 2 + gap + textW + padX;
+    return { w, h, textW, size, padX, dotR, gap };
+  }
+
+  function roundRectPath(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.arcTo(x + w, y, x + w, y + r, r);
+    c.lineTo(x + w, y + h - r);
+    c.arcTo(x + w, y + h, x + w - r, y + h, r);
+    c.lineTo(x + r, y + h);
+    c.arcTo(x, y + h, x, y + h - r, r);
+    c.lineTo(x, y + r);
+    c.arcTo(x, y, x + r, y, r);
+    c.closePath();
+  }
+
+  function drawWatermark(text, m, imgAreaH) {
+    const key = WM_POSITIONS[state.wmPos].key;
+    let x, y;
+    switch (key) {
+      case 'top-left':    x = WM_MARGIN; y = WM_MARGIN; break;
+      case 'img-right':   x = W - WM_MARGIN - m.w; y = imgAreaH - WM_MARGIN - m.h; break;
+      case 'img-left':    x = WM_MARGIN; y = imgAreaH - WM_MARGIN - m.h; break;
+      case 'card-bottom': x = (W - m.w) / 2; y = H - 30 - m.h; break;
+      default:            x = W - WM_MARGIN - m.w; y = WM_MARGIN;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = state.wmOpacity;
+
+    // Pill background with soft shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 3;
+    roundRectPath(ctx, x, y, m.w, m.h, m.h / 2);
+    ctx.fillStyle = 'rgba(12,12,12,0.55)';
+    ctx.fill();
+
+    // Thin light border
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.stroke();
+
+    // Accent dot with glow ring
+    const cx = x + m.padX + m.dotR;
+    const cy = y + m.h / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, m.dotR * 1.7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(33,150,243,0.28)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, m.dotR, 0, Math.PI * 2);
+    ctx.fillStyle = WM_ACCENT;
+    ctx.fill();
+
+    // Text
+    ctx.font = `700 ${m.size}px ${FONT_STACK}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(text, x + m.padX + m.dotR * 2 + m.gap, cy + m.size * 0.04);
+    ctx.restore();
+  }
+
+  function drawCard() {
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, W, H);
+
+    const splitY = Math.round(H * state.splitRatio);
+    state.splitY = splitY;
+    const imgAreaH = splitY;
+    const textAreaH = H - splitY;
+
+    // ---- IMAGE AREA ----
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, W, imgAreaH);
+
+    if (state.image) {
+      const img = state.image;
+      const targetRatio = W / imgAreaH;
+      const imgRatio = img.width / img.height;
+
+      let baseW, baseH;
+      if (imgRatio > targetRatio) { baseH = img.height; baseW = baseH * targetRatio; }
+      else { baseW = img.width; baseH = baseW / targetRatio; }
+
+      const cropW = baseW / state.zoom;
+      const cropH = baseH / state.zoom;
+
+      state.centerX = Math.max(cropW / 2, Math.min(state.centerX, img.width - cropW / 2));
+      state.centerY = Math.max(cropH / 2, Math.min(state.centerY, img.height - cropH / 2));
+
+      const cropX = state.centerX - cropW / 2;
+      const cropY = state.centerY - cropH / 2;
+
+      state.cropW = cropW;
+      state.cropH = cropH;
+
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, W, imgAreaH);
+
+      const fadeH = 160;
+      const grad = ctx.createLinearGradient(0, imgAreaH - fadeH, 0, imgAreaH);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, imgAreaH - fadeH, W, fadeH);
+    }
+
+    const wmText = state.wmVisible ? (state.watermarkText || '').trim() : '';
+    const wm = measureWatermark(wmText);
+    const wmReserve = (wmText && WM_POSITIONS[state.wmPos].key === 'card-bottom') ? wm.h + 50 : 40;
+
+    // ---- TEXT AREA ----
+    const paddingX = 60;
+    const maxWidth = W - paddingX * 2;
+    ctx.font = `700 ${state.fontSize}px ${FONT_STACK}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+
+    const spaceWidth = ctx.measureText(' ').width;
+    const tokens = buildTokens(state.text || '');
+    const lines = wrapTokens(ctx, tokens, maxWidth);
+    const lineHeight = state.fontSize * 1.3;
+    const totalTextHeight = lines.length * lineHeight;
+    const textAreaCenterY = splitY + (textAreaH - wmReserve) / 2;
+    const startY = textAreaCenterY - totalTextHeight / 2 + lineHeight / 2;
+
+    state.wordBoxes = [];
+    lines.forEach((line, i) => {
+      const lineWidth = line.reduce((sum, t, idx) => sum + t.width + (idx > 0 ? spaceWidth : 0), 0);
+      let x = W / 2 - lineWidth / 2;
+      const y = startY + i * lineHeight;
+      line.forEach(tok => {
+        ctx.fillStyle = tok.color;
+        ctx.fillText(tok.text, x, y);
+        state.wordBoxes.push({
+          wordIndex: tok.wordIndex,
+          x: x, y: y - lineHeight / 2, w: tok.width, h: lineHeight
+        });
+        x += tok.width + spaceWidth;
+      });
+    });
+
+    // ---- WATERMARK ----
+    if (wmText) drawWatermark(wmText, wm, imgAreaH);
+
+    const displayRatio = container.clientHeight / H;
+    divider.style.top = (splitY * displayRatio) + 'px';
+    placeholderHint.style.top = '0px';
+    placeholderHint.style.height = (imgAreaH * displayRatio) + 'px';
+    placeholderHint.style.display = state.image ? 'none' : 'flex';
+  }
+
+  // ---- Divider drag ----
+  let dragging = false;
+  function ratioFromClientY(clientY) {
+    const rect = container.getBoundingClientRect();
+    const frac = (clientY - rect.top) / rect.height;
+    return Math.max(0.3, Math.min(0.8, frac));
+  }
+  divider.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    divider.setPointerCapture(e.pointerId);
+  });
+  divider.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    state.splitRatio = ratioFromClientY(e.clientY);
+    drawCard();
+  });
+  divider.addEventListener('pointerup', () => { dragging = false; });
+  divider.addEventListener('pointercancel', () => { dragging = false; });
+
+  // ---- Canvas pointer handling ----
+  let imgDragging = false;
+  let lastX = 0, lastY = 0;
+  let textTapCandidate = false;
+  let pointerStartClient = { x: 0, y: 0 };
+
+  function toCanvasCoords(clientX, clientY) {
+    const rect = container.getBoundingClientRect();
+    const scale = W / rect.width;
+    return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
+  }
+
+  function handleWordTap(cx, cy) {
+    const box = state.wordBoxes.find(b => cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h);
+    if (!box) return;
+    // cycle: auto (-1) -> manual colors 0..n-1 -> back to auto
+    const i = box.wordIndex;
+    const cur = state.wordColorIdx[i];
+    state.wordColorIdx[i] = cur >= WORD_COLORS.length - 1 ? -1 : cur + 1;
+    drawCard();
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    pointerStartClient = { x: e.clientX, y: e.clientY };
+    const p = toCanvasCoords(e.clientX, e.clientY);
+    if (state.image && p.y < state.splitY) {
+      imgDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    } else if (p.y >= state.splitY) {
+      textTapCandidate = true;
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!imgDragging || !state.image) return;
+    const rect = container.getBoundingClientRect();
+    const dxDisplay = e.clientX - lastX;
+    const dyDisplay = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    const displayScale = rect.width / W;
+    const imgAreaH = state.splitY;
+    const scaleFactorX = (state.cropW / W) / displayScale;
+    const scaleFactorY = (state.cropH / imgAreaH) / displayScale;
+
+    state.centerX -= dxDisplay * scaleFactorX;
+    state.centerY -= dyDisplay * scaleFactorY;
+
+    drawCard();
+  });
+
+  canvas.addEventListener('pointerup', (e) => {
+    if (imgDragging) {
+      imgDragging = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+      return;
+    }
+    if (textTapCandidate) {
+      textTapCandidate = false;
+      const moved = Math.hypot(e.clientX - pointerStartClient.x, e.clientY - pointerStartClient.y);
+      if (moved < 8) {
+        const p = toCanvasCoords(e.clientX, e.clientY);
+        handleWordTap(p.x, p.y);
+      }
+    }
+  });
+  canvas.addEventListener('pointercancel', () => { imgDragging = false; textTapCandidate = false; });
+
+  document.getElementById('pickImageBtn').addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        state.image = img;
+        state.zoom = 1;
+        state.centerX = img.width / 2;
+        state.centerY = img.height / 2;
+        zoomInput.value = 100;
+        zoomVal.textContent = 100;
+        drawCard();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  factText.addEventListener('input', () => {
+    state.text = factText.value;
+    syncWordColors();
+    drawCard();
+  });
+  fontSizeInput.addEventListener('input', () => {
+    state.fontSize = parseInt(fontSizeInput.value, 10);
+    fontSizeVal.textContent = state.fontSize;
+    drawCard();
+  });
+  zoomInput.addEventListener('input', () => {
+    state.zoom = parseInt(zoomInput.value, 10) / 100;
+    zoomVal.textContent = zoomInput.value;
+    drawCard();
+  });
+  watermarkInput.addEventListener('input', () => {
+    state.watermarkText = watermarkInput.value;
+    drawCard();
+  });
+  document.getElementById('wmSize').addEventListener('input', (e) => {
+    state.wmSize = parseInt(e.target.value, 10);
+    document.getElementById('wmSizeVal').textContent = state.wmSize;
+    drawCard();
+  });
+  document.getElementById('wmOpacity').addEventListener('input', (e) => {
+    state.wmOpacity = parseInt(e.target.value, 10) / 100;
+    document.getElementById('wmOpacityVal').textContent = e.target.value;
+    drawCard();
+  });
+  document.getElementById('wmPosBtn').addEventListener('click', (e) => {
+    state.wmPos = (state.wmPos + 1) % WM_POSITIONS.length;
+    e.currentTarget.textContent = '📍 Position: ' + WM_POSITIONS[state.wmPos].label;
+    drawCard();
+  });
+  document.getElementById('wmToggleBtn').addEventListener('click', (e) => {
+    state.wmVisible = !state.wmVisible;
+    e.currentTarget.textContent = '👁️ Show: ' + (state.wmVisible ? 'ON' : 'OFF');
+    drawCard();
+  });
+
+  function toast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.5);max-width:90%;text-align:center;transition:opacity .3s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._h);
+    t._h = setTimeout(() => { t.style.opacity = '0'; }, 2600);
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    canvas.toBlob((blob) => {
+      if (!blob) { toast('Save nahi ho paya'); return; }
+      const filename = 'FactCues_' + Date.now() + '.png';
+
+      // Android app: native bridge se gallery (Pictures/FactCues) mein save
+      if (window.AndroidSave) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = String(reader.result).split(',')[1] || '';
+          let res = '';
+          try { res = window.AndroidSave.save(base64, filename); }
+          catch (e) { res = 'error: ' + e.message; }
+          toast(res === 'ok' ? '✅ Gallery mein save ho gaya (Pictures/FactCues)' : '⚠️ Save fail: ' + res);
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+
+      // Browser fallback
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }, 'image/png');
+  });
+
+  window.addEventListener('resize', drawCard);
+  window.addEventListener('load', drawCard);
+  if (document.fonts && document.fonts.load) {
+    Promise.all([
+      document.fonts.load('700 52px "Noto Sans Devanagari"'),
+      document.fonts.load('700 52px "Poppins"')
+    ]).catch(() => {}).then(drawCard);
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(drawCard);
+  }
+  drawCard();
+</script>
+</body>
+</html>
